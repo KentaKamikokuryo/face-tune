@@ -4,13 +4,14 @@ from src.enet import FaceEmotionRecognizer, get_whole_emotion
 from src.utilities import draw_face_simple_emotion
 from src.spotify import extract_the_most_played_song_in_each_country, FILENAME
 from src.recommend import get_song_information
+from dotenv import load_dotenv
 
 # os内のenvironmentを扱うライブラリ
 import os, requests, json, time
 import numpy as np
 from io import BytesIO
 from PIL import Image
-
+from pathlib import Path
 from linebot import (
     LineBotApi, WebhookHandler
 )
@@ -22,9 +23,11 @@ from linebot.models import (
     ImageSendMessage,
     )
 
+load_dotenv()
+
 # BBOX検知モデル ＋ 感情認識モデル
-bbox_detector = BBoxDetector(path_model=os.environ("DEEPFACE_HOME"), threshold=.6)
-face_emotion_recognizer = FaceEmotionRecognizer(path_model=os.environ("DEEPFACE_HOME"))
+bbox_detector = BBoxDetector(path_model=os.environ["DEEPFACE_HOME"], threshold=.6)
+face_emotion_recognizer = FaceEmotionRecognizer(path_model=os.environ["DEEPFACE_HOME"])
 
 # 各国の再生回数画一番多い曲（毎週更新）を取得し保存
 extract_the_most_played_song_in_each_country()
@@ -72,9 +75,10 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    text = "顔画像を送ってください．"
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text="Try to send me the facial image!"))
+        TextSendMessage(text=text))
     
 
 @handler.add(MessageEvent, message=ImageMessage)
@@ -84,34 +88,43 @@ def handle_message(event):
     print(message_id)
     
     try: 
-        image_array = _get_image_from_line(message_id)
+        message_content = line_bot_api.get_message_content(message_id)
+        image_array = _get_image_from_line(message_content)
         _, faces, square_faces = bbox_detector.infer(image=image_array)
         results = face_emotion_recognizer.infer(image=image_array, faces=square_faces)
-        
         image = draw_face_simple_emotion(frame=image_array, results=results, faces=faces)
         image = Image.fromarray(image)
-
-        # Save the processed image to a cloud storage or server and get the URL
-        # This part is pseudo-code and needs to be replaced with actual implementation
-        image_url = _save_image_to_cloud(image)  # Implement this function
-        preview_url = image_url  # You can use the same URL for preview, or create a different one
-
-        # Send the image as a reply
-        line_bot_api.reply_message(
-            event.reply_token,
-            ImageSendMessage(
-                original_content_url=image_url,
-                preview_image_url=preview_url
-            )
-        )
+        image.save(f"./data/output_{message_id}.jpg")
         
-        time.sleep(1)
+        
+        # with open(Path(f"static/images/{message_id}.jpg").absolute(), "wb") as f:
+        #     # バイナリを1024バイトずつ書き込む
+        #     for chunk in message_content.iter_content():
+        #         f.write(chunk)
+
+        # # Save the processed image to a cloud storage or server and get the URL
+        # # This part is pseudo-code and needs to be replaced with actual implementation
+        # image_url = _save_image_to_cloud(image)  # Implement this function
+        # preview_url = image_url  # You can use the same URL for preview, or create a different one
+
+        # # Send the image as a reply
+        # line_bot_api.reply_message(
+        #     event.reply_token,
+        #     ImageSendMessage(
+        #         original_content_url=image_url,
+        #         preview_image_url=preview_url
+        #     )
+        # )
+        
+        # time.sleep(1)
         
         mean_emotion, prob = get_whole_emotion(results)
         artist, title, uri = get_song_information(mean_emotion, prob, FILENAME)
         
+        url = _convert_spotify_uri_to_url(uri)
+        
         kg = "\n"
-        text_to_send = f"画像全体の感情は{str(mean_emotion)}で確率{str(int(prob * 100))}%なので，以下の曲がおすすめです．{kg}アーティスト: {artist} {kg}曲名: {title} {kg}URI: {uri}"
+        text_to_send = f"画像全体の感情は{str(mean_emotion)}で確率{str(int(prob * 100))}%なので，以下の曲がおすすめです．{kg}アーティスト: {artist} {kg}曲名: {title} {kg}URI: {url}"
         
         line_bot_api.reply_message(
             event.reply_token,
@@ -129,13 +142,26 @@ def handle_message(event):
             event.reply_token,
             TextSendMessage(text=error_message)
         )
+        
+def _convert_spotify_uri_to_url(spotify_uri):
+    # Split the URI by ':' and check if it's a valid Spotify track URI
+    parts = spotify_uri.split(':')
+    if len(parts) != 3 or parts[0] != 'spotify' or parts[1] != 'track':
+        raise ValueError("Invalid Spotify track URI")
+
+    # Construct the URL using the track ID
+    track_id = parts[2]
+    url = f"http://open.spotify.com/track/{track_id}"
+    return url
     
 
-def _get_image_from_line(id) -> np.ndarray:
+def _get_image_from_line(message_content) -> np.ndarray:
     
-    line_url = 'https://api.line.me/v2/bot/message/' + id + '/content/'
-    result = requests.get(line_url, headers=header)
-    im = Image.open(BytesIO(result.content))
+
+    # line_url = 'https://api.line.me/v2/bot/message/' + id + '/content/'
+    # result = requests.get(line_url, headers=header)
+    # print(result)
+    im = Image.open(BytesIO(message_content.content))
     im_array = np.array(im)
     
     return im_array

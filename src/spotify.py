@@ -4,8 +4,6 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from pprint import pprint
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials(
                                                     client_id=os.environ['SPOTIFY_CLIENT_ID'], 
@@ -14,13 +12,9 @@ sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials(
 
 
 weekly_top_playlist_ids_dict = dict(
-    Global='37i9dQZEVXbNG2KDcFcKOF',  # グローバル
     Japan='37i9dQZEVXbKqiTGXuCOsB',  # 日本
     Korea='37i9dQZEVXbJZGli0rRP3r',  # 韓国
     America='37i9dQZEVXbLp5XoPON0wI',  # アメリカ
-    Italy='37i9dQZEVXbJUPkgaWZcWG',  # イタリア
-    India='37i9dQZEVXbMWDif5SCBJq',  # インド
-    Brazil='37i9dQZEVXbKzoK95AbRy9',  # ブラジル
 )
 
 

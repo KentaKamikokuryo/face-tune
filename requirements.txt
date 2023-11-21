@@ -15,5 +15,3 @@ spotipy
 
 pandas
 matplotlib
-seaborn
-scikit-learn

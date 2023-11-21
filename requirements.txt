@@ -1,0 +1,19 @@
+# LINE API
+flask
+line-bot-sdk
+
+# emotion recogntion
+hsemotion
+hsemotion-onnx
+timm==0.4.5
+
+# retina face
+retina-face
+
+# Spotify API
+spotipy
+
+pandas
+matplotlib
+seaborn
+scikit-learn

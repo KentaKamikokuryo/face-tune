@@ -1,0 +1,13 @@
+{
+	"name": "My Dev Container",
+	// compose-fileでイメージ・コンテナを作成
+	"dockerComposeFile": "../docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/usr/src/app", // 指定したserviceのworkspaceフォルダを指定
+	// リモート先のVS Codeにインストールする拡張機能
+	"customizations": {
+		"vscode": {
+		  "extensions":["ms-python.python", "njpwerner.autodocstring"]
+		}
+	}
+}
